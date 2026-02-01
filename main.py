@@ -1,51 +1,51 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+import uuid, os
+
 from kis_api import place_order
-import uuid
 
 app = FastAPI()
 
-PENDING_ORDERS = {}
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
-class OrderRequest(BaseModel):
+PENDING = {}
+
+class PreviewReq(BaseModel):
     ticker: str
     seed: float
     avg_price: float
     current_price: float
 
-@app.post("/api/order/preview")
-def preview_order(req: OrderRequest):
-    avg5 = req.avg_price * 1.05
-    price15 = req.current_price * 1.15
-    buy_price = min(avg5, price15)
+@app.get("/")
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
-    split40 = req.seed / 40
-    use_money = split40 / 2
+@app.post("/api/order/preview")
+def preview(req: PreviewReq):
+    buy_price = min(req.avg_price * 1.05, req.current_price * 1.15)
+    use_money = (req.seed / 40) / 2
     qty = int(use_money // buy_price)
 
-    order_id = str(uuid.uuid4())
-
-    PENDING_ORDERS[order_id] = {
+    oid = str(uuid.uuid4())
+    PENDING[oid] = {
         "ticker": req.ticker,
         "price": round(buy_price, 2),
         "qty": qty
     }
 
-    return {
-        "order_id": order_id,
-        "ticker": req.ticker,
-        "price": round(buy_price, 2),
-        "qty": qty
-    }
-    
+    return {"order_id": oid, **PENDING[oid]}
+
 @app.post("/api/order/confirm/{order_id}")
-def confirm_order(order_id: str):
-    if order_id not in PENDING_ORDERS:
-        return {"error": "Invalid or expired order"}
+def confirm(order_id: str):
+    if order_id not in PENDING:
+        return {"error": "invalid order"}
 
-    order = PENDING_ORDERS.pop(order_id)
+    order = PENDING.pop(order_id)
 
-    # ⚠️ 여기서만 실제 주문
+    # ⚠️ 실제로는 여기서 access_token 발급 후 사용
     result = place_order(
         order["ticker"],
         order["price"],
@@ -53,7 +53,8 @@ def confirm_order(order_id: str):
         access_token="ACCESS_TOKEN"
     )
 
-    return {
-        "status": "ORDER_SENT",
-        "result": result
-    }
+    return {"status": "ORDER_SENT", "result": result}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
