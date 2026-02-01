@@ -1,1 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>반자동 매수</title>
+</head>
+<body>
+  <h2>📈 반자동 매수</h2>
+
+  <input id="ticker" placeholder="티커 (예: 005930)" /><br/>
+  <input id="seed" placeholder="시드 금액" /><br/>
+  <input id="avg" placeholder="평단가" /><br/>
+  <input id="current" placeholder="현재가" /><br/><br/>
+
+  <button onclick="previewOrder()">매수 미리보기</button>
+
+  <div id="confirmBox" style="display:none; margin-top:20px;">
+    <p id="orderInfo"></p>
+    <button onclick="confirmOrder()">이 주문 확정</button>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
 
