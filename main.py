@@ -45,12 +45,10 @@ def confirm(order_id: str):
 
     order = PENDING.pop(order_id)
 
-    # ⚠️ 실제로는 여기서 access_token 발급 후 사용
     result = place_order(
         order["ticker"],
         order["price"],
         order["qty"],
-        access_token="ACCESS_TOKEN"
     )
 
     return {"status": "ORDER_SENT", "result": result}
